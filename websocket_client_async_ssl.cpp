@@ -10,7 +10,6 @@
 #include <memory>
 #include <string>
 
-namespace certify =  boost::certify;
 namespace beast = boost::beast;
 namespace http = beast::http;
 namespace websocket = beast::websocket;
