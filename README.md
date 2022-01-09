@@ -27,7 +27,7 @@ tar --bzip2 -xf boost_1_78_0.tar.bz2
 #### Boost.Certify
 
 Нам также потребуется получить библиотеку [Certify](https://github.com/djarek/certify). Она нужна нам для правильной
-проверки подлинности IP-адреса сервера. Её рекомендуют сами разработчики `beast` в комментарии к
+проверки подлинности IP-адреса сервера. Её рекомендуют сами разработчики `beast` в комментарие к
 файлу [root_certificates.hpp](https://www.boost.org/doc/libs/master/libs/beast/example/common/root_certificates.hpp).
 
 Перейдите в подкаталог, содержащий библиотеки Boost:
