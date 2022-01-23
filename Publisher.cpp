@@ -1,4 +1,4 @@
-#include "Publisher.h"
+#include "includes/Publisher.h"
 
 /**
  * @param channel Канал Aeron. В общем случае для указания канала используется URI
@@ -11,6 +11,7 @@ Publisher::Publisher(std::string channel, int32_t stream_id, int32_t buffer_size
         buffer(buffer_size, 0),
         src_buffer(&buffer[0], buffer.size())
 {
+    connect();
 }
 
 /**

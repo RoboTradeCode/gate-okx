@@ -10,7 +10,7 @@
  * @param channel Канал Aeron. В общем случае для указания канала используется URI
  * @param stream_id Уникальный идентификатор потока в канале. Значение 0 зарезервировано, его использовать нельзя
  */
-class Subscriber
+class  Subscriber : public std::enable_shared_from_this<Subscriber>
 {
 private:
     // Медиа-драйвер
@@ -29,7 +29,9 @@ private:
 
     // Функция обратного вызова для обработки каждого фрагмента сообщения по мере его чтения
     // https://github.com/real-logic/aeron/wiki/Cpp-Programming-Guide#fragment_handler_t
-    aeron::fragment_handler_t handler;
+    std::function<void (std::string)> callback;
+
+    void fragment_handler(const aeron::AtomicBuffer& buffer, aeron::util::index_t offset, aeron::util::index_t length, const aeron::Header& header);
 
 public:
     /**
@@ -38,7 +40,7 @@ public:
      * @param stream_id Уникальный идентификатор потока в канале. Значение 0 зарезервировано, его использовать нельзя
      * @param fragments_limit Максимальное количество фрагментов в сообщении
      */
-    explicit Subscriber(aeron::fragment_handler_t handler, std::string channel, int32_t stream_id = 1001);
+    explicit Subscriber(std::function<void (std::string)> callback, std::string channel, int32_t stream_id = 1001);
 
     /**
      * Подключение к медиа-драйверу

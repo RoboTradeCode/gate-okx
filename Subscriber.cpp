@@ -1,16 +1,30 @@
-#include "Subscriber.h"
+#include "includes/Subscriber.h"
 #include <utility>
+
+aeron::fragment_handler_t fragment_handler(std::function<void (std::string)>& handler)
+{
+    return [&](const aeron::AtomicBuffer& buffer, aeron::util::index_t offset,
+               aeron::util::index_t length, const aeron::Header& header)
+    {
+        auto s = reinterpret_cast<const char*>(buffer.buffer()) + offset;
+        auto n = static_cast<std::size_t>(length);
+        std::string message(s, n);
+        handler(message);
+    };
+}
+
 
 /**
  * @param handler Callback для обработки каждого поступающего фрагмента
  * @param channel Канал Aeron. В общем случае для указания канала используется URI
  * @param stream_id Уникальный идентификатор потока в канале. Значение 0 зарезервировано, его использовать нельзя
  */
-Subscriber::Subscriber(aeron::fragment_handler_t handler, std::string channel, int32_t stream_id) :
-        handler(std::move(handler)),
-        channel(std::move(channel)),
-        stream_id(stream_id)
+Subscriber::Subscriber(std::function<void (std::string)> callback, std::string channel, int32_t stream_id)
+    : callback(std::move(callback)),
+      channel(std::move(channel)),
+      stream_id(stream_id)
 {
+    connect();
 }
 
 /**
@@ -52,5 +66,15 @@ int Subscriber::poll()
 {
     // Определяет, есть ли какие-либо фрагменты для получения и получает их
     // https://github.com/real-logic/aeron/wiki/Cpp-Programming-Guide#polling
-    return subscription->poll(handler, 1);
+    return subscription->poll(std::bind(&Subscriber::fragment_handler, shared_from_this(), std::placeholders::_1,
+            std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), 1);
+}
+
+void Subscriber::fragment_handler(const aeron::AtomicBuffer& buffer, aeron::util::index_t offset,
+        aeron::util::index_t length, const aeron::Header& header)
+{
+    auto s = reinterpret_cast<const char*>(buffer.buffer()) + offset;
+    auto n = static_cast<std::size_t>(length);
+    std::string message(s, n);
+    callback(message);
 }
