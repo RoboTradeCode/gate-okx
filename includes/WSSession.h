@@ -5,7 +5,6 @@
 #include <boost/beast/core.hpp>
 #include <boost/beast/ssl.hpp>
 #include <boost/beast/websocket.hpp>
-#include <boost/certify/https_verification.hpp>
 
 namespace net = boost::asio;
 namespace ssl = boost::asio::ssl;

@@ -3,14 +3,18 @@
 #include <boost/json/src.hpp>
 #include "includes/OKXPublic.h"
 #include "includes/OKXPrivate.h"
+#include "includes/OKXREST.h"
 #include "includes/Publisher.h"
 #include "includes/Subscriber.h"
 
 namespace json = boost::json;
 
 void public_ws_handler(const std::string&);
+
 void private_ws_handler(const std::string&);
+
 void aeron_handler(const std::string&);
+
 void sigint_handler(int);
 
 auto const API_KEY = "37fd8b3f-d35a-4c18-950a-3aa820192344";
@@ -20,6 +24,7 @@ auto const SECRET_KEY = "8C43BD47C7FF1594D7A33B19F8026A40";
 std::atomic<bool> running(true);
 std::shared_ptr<OKXPublic> okx_public;
 std::shared_ptr<OKXPrivate> okx_private;
+std::shared_ptr<OKXREST> okx_rest;
 std::shared_ptr<Publisher> orderbook_channel;
 std::shared_ptr<Publisher> balance_channel;
 std::shared_ptr<Publisher> logs_channel;
@@ -34,14 +39,15 @@ int main()
     core_channel = std::make_shared<Subscriber>(&aeron_handler, "aeron:ipc", 103);
     BOOST_LOG_TRIVIAL(trace) << "Aeron connections established";
 
-    // Установка соединения с публичным и приватным вебсокетами OKX
+    // Установка соединений с OKX
     boost::asio::io_context ioc;
     okx_public = std::make_shared<OKXPublic>(ioc, public_ws_handler);
-    okx_private = std::make_shared<OKXPrivate>(ioc, private_ws_handler);
-    BOOST_LOG_TRIVIAL(trace) << "WebSocket connections established";
+    okx_private = std::make_shared<OKXPrivate>(ioc, private_ws_handler, API_KEY, PASSPHRASE, SECRET_KEY);
+    okx_rest = std::make_shared<OKXREST>(ioc, API_KEY, PASSPHRASE, SECRET_KEY);
+    BOOST_LOG_TRIVIAL(trace) << "OKX connections established";
 
     // Авторизация в приватном канале
-    okx_private->login(API_KEY, PASSPHRASE, SECRET_KEY);
+    okx_private->login();
     BOOST_LOG_TRIVIAL(info) << "Sent request to login";
     boost::this_thread::sleep(boost::posix_time::seconds(3));
 
@@ -59,6 +65,23 @@ int main()
     // https://www.okx.com/docs-v5/en/#websocket-api-private-channel-balance-and-position-channel
     okx_private->subscribe_balance_and_position();
     BOOST_LOG_TRIVIAL(info) << "Sent request to subscribe to balance and position channel";
+
+    // Получение списка ордеров
+    // https://www.okx.com/docs-v5/en/#rest-api-trade-get-order-list
+    BOOST_LOG_TRIVIAL(info) << "Sending request to get order list...";
+    auto order_list = json::parse(okx_rest->get_order_list()).as_object();
+    BOOST_LOG_TRIVIAL(debug) << "Received order list: " << order_list;
+
+    // Отмена всех ордеров
+    for (const auto& order: order_list.at("data").as_array())
+    {
+        okx_private->cancel_order(
+            std::to_string(time(nullptr)),
+            std::string(order.at("instId").as_string()),
+            std::string(order.at("ordId").as_string())
+        );
+        BOOST_LOG_TRIVIAL(info) << "Sent request to cancel order (id" << order.at("ordId") << ")";
+    }
 
     // Опрос вебсокетов и каналов Aeron
     signal(SIGINT, sigint_handler);
@@ -88,7 +111,7 @@ void public_ws_handler(const std::string& message)
             { "T", std::to_string(time(nullptr)) }
         }));
     }
-    else if (object.at("event") == "error")
+    else if (object.if_contains("event") && object.at("event") == "error")
     {
         BOOST_LOG_TRIVIAL(error) << object.at("msg");
         logs_channel->offer(json::serialize(json::value{
@@ -106,13 +129,23 @@ void private_ws_handler(const std::string& message)
     BOOST_LOG_TRIVIAL(debug) << "Received message in private ws handler: " << message;
     auto object = json::parse(message).as_object();
 
-    if (!object.if_contains("event"))
+    if (!object.if_contains("event") && object.if_contains("arg") &&
+        object.at("arg").at("channel") == "balance_and_position")
     {
+        json::array balances;
+        for (const auto& ccy: object.at("data").at(0).at("balData").as_array())
+        {
+            balances.push_back(json::value{
+                { "a", ccy.at("ccy") },
+                { "f", ccy.at("cashBal") },
+            });
+        }
+
         balance_channel->offer(json::serialize(json::value{
-            // TODO: Proxy balance
+            { "B", balances }
         }));
     }
-    else if (object.at("event") == "error")
+    else if (object.if_contains("event") && object.at("event") == "error")
     {
         BOOST_LOG_TRIVIAL(error) << object.at("msg");
         logs_channel->offer(json::serialize(json::value{
@@ -135,22 +168,27 @@ void aeron_handler(const std::string& message)
         okx_private->order(
             std::to_string(time(nullptr)),
             object.at("s") == "BUY" ? "buy" : "sell",
-            serialize(object.at("S")),
-            serialize(object.at("q")),
-            serialize(object.at("p"))
+            json::serialize(object.at("S")),
+            json::serialize(object.at("q")),
+            json::serialize(object.at("p"))
         );
         BOOST_LOG_TRIVIAL(info) << "Sent request to create order (id" << std::to_string(time(nullptr)) << ")";
     }
     else
     {
-        // TODO: Cancel all orders
-        //
-        // okx_private->cancel_order(
-        //     std::to_string(time(nullptr)),
-        //     serialize(object.at("S")),
-        //     "<ord_id>"
-        // );
-        BOOST_LOG_TRIVIAL(info) << "Sent request to cancel order (id" << std::to_string(time(nullptr)) << ")";
+        auto order_list = json::parse(okx_rest->get_order_list()).as_object();
+        for (const auto& order: order_list.at("data").as_array())
+        {
+            if (object.at("S") == order.at("instId") && object.at("S") == order.at("side"))
+            {
+                okx_private->cancel_order(
+                    std::to_string(time(nullptr)),
+                    std::string(order.at("instId").as_string()),
+                    std::string(order.at("ordId").as_string())
+                );
+                BOOST_LOG_TRIVIAL(info) << "Sent request to cancel order (id" << order.at("ordId") << ")";
+            }
+        }
     }
 }
 

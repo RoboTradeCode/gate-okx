@@ -1,12 +1,16 @@
 #include "includes/OKXPrivate.h"
 
-OKXPrivate::OKXPrivate(net::io_context& ioc, const std::function<void(std::string)>& event_handler)
+OKXPrivate::OKXPrivate(net::io_context& ioc, const std::function<void(std::string)>& event_handler,
+    std::string api_key, std::string passphrase, std::string secret_key)
+    : api_key(std::move(api_key)),
+      passphrase(std::move(passphrase)),
+      secret_key(std::move(secret_key))
 {
     ws = std::make_shared<WSSession>("wspap.okex.com", "8443", "/ws/v5/private?brokerId=9999", ioc, event_handler);
     ws->async_read();
 }
 
-void OKXPrivate::login(const std::string& api_key, const std::string& passphrase, const std::string& secret_key)
+void OKXPrivate::login()
 {
     auto timestamp = std::to_string(time(nullptr));
     auto sign = base64_hmac_sha256(timestamp + "GET" + "/users/self/verify", secret_key);

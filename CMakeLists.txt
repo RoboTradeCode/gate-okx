@@ -9,7 +9,7 @@ find_package(OpenSSL REQUIRED)
 
 include_directories(/home/ubuntu/aeron/aeron-client/src/main/cpp)
 
-add_executable(main main.cpp includes/Publisher.h Publisher.cpp includes/Subscriber.h Subscriber.cpp
-        includes/WSSession.h WSSession.cpp includes/HTTPSession.h HTTPSession.cpp includes/OKXPublic.h OKXPublic.cpp
-        includes/OKXPrivate.h OKXPrivate.cpp includes/utils.h utils.cpp)
+add_executable(main main.cpp Publisher.cpp Subscriber.cpp WSSession.cpp HTTPSession.cpp OKXPublic.cpp OKXPrivate.cpp
+        OKXREST.cpp utils.cpp includes/Publisher.h includes/Subscriber.h includes/WSSession.h includes/HTTPSession.h
+        includes/OKXPublic.h includes/OKXPrivate.h includes/OKXREST.h includes/utils.h)
 target_link_libraries(main Threads::Threads OpenSSL::SSL Boost::log libaeron_client.a)

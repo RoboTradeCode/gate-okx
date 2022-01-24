@@ -20,7 +20,6 @@ WSSession::WSSession(std::string host, const std::string& port, const std::strin
     ssl::context ctx{ ssl::context::tls_client };
     ctx.set_verify_mode(ssl::context::verify_peer | ssl::context::verify_fail_if_no_peer_cert);
     ctx.set_default_verify_paths();
-    boost::certify::enable_native_https_server_verification(ctx);
 
     ws = std::make_shared<websocket::stream<beast::ssl_stream<beast::tcp_stream>>>(ioc, ctx);
 

@@ -13,11 +13,15 @@ namespace json = boost::json;
 class OKXPrivate
 {
     std::shared_ptr<WSSession> ws;
+    std::string api_key;
+    std::string passphrase;
+    std::string secret_key;
 
 public:
-    explicit OKXPrivate(boost::asio::io_context& ioc, const std::function<void(std::string)>& event_handler);
+    explicit OKXPrivate(boost::asio::io_context& ioc, const std::function<void(std::string)>& event_handler,
+        std::string api_key, std::string passphrase, std::string secret_key);
 
-    void login(const std::string& api_key, const std::string& passphrase, const std::string& secret_key);
+    void login();
 
     void order(const std::string& id, const std::string& side, const std::string& inst_id, const std::string& sz,
         const std::string& px, const std::string& td_mode = "cash", const std::string& ord_type = "limit");

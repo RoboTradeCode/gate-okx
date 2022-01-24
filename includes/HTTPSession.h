@@ -5,7 +5,6 @@
 #include <boost/beast/http.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/ssl.hpp>
-#include <boost/certify/https_verification.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include "utils.h"
 
@@ -18,7 +17,7 @@ using tcp = boost::asio::ip::tcp;
 class HTTPSession
 {
     std::string host;
-    std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> stream;
+    std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> s;
 
 public:
     explicit HTTPSession(const std::string& host, const std::string& port, net::io_context& ioc);
