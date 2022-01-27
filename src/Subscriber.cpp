@@ -1,19 +1,6 @@
 #include "includes/Subscriber.h"
 #include <utility>
 
-aeron::fragment_handler_t fragment_handler(std::function<void (std::string)>& handler)
-{
-    return [&](const aeron::AtomicBuffer& buffer, aeron::util::index_t offset,
-               aeron::util::index_t length, const aeron::Header& header)
-    {
-        auto s = reinterpret_cast<const char*>(buffer.buffer()) + offset;
-        auto n = static_cast<std::size_t>(length);
-        std::string message(s, n);
-        handler(message);
-    };
-}
-
-
 /**
  * @param handler Callback для обработки каждого поступающего фрагмента
  * @param channel Канал Aeron. В общем случае для указания канала используется URI
@@ -73,8 +60,5 @@ int Subscriber::poll()
 void Subscriber::fragment_handler(const aeron::AtomicBuffer& buffer, aeron::util::index_t offset,
         aeron::util::index_t length, const aeron::Header& header)
 {
-    auto s = reinterpret_cast<const char*>(buffer.buffer()) + offset;
-    auto n = static_cast<std::size_t>(length);
-    std::string message(s, n);
-    callback(message);
+    callback(buffer.getString(offset));
 }

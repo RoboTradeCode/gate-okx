@@ -1,11 +1,13 @@
 #include <boost/thread/thread.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/json/src.hpp>
-#include "includes/OKXPublic.h"
-#include "includes/OKXPrivate.h"
-#include "includes/OKXREST.h"
-#include "includes/Publisher.h"
-#include "includes/Subscriber.h"
+#include <boost/algorithm/string.hpp>
+#include <algorithm>
+#include "src/includes/OKXPublic.h"
+#include "src/includes/OKXPrivate.h"
+#include "src/includes/OKXREST.h"
+#include "src/includes/Publisher.h"
+#include "src/includes/Subscriber.h"
 
 namespace json = boost::json;
 
@@ -17,9 +19,9 @@ void aeron_handler(const std::string&);
 
 void sigint_handler(int);
 
-auto const API_KEY = "37fd8b3f-d35a-4c18-950a-3aa820192344";
-auto const PASSPHRASE = "ZVCbDNGr3354";
-auto const SECRET_KEY = "8C43BD47C7FF1594D7A33B19F8026A40";
+auto const API_KEY = "b08ae116-38ff-4ab5-8be8-3b7059ff55b1";
+auto const PASSPHRASE = "mmkf5jJ5dfC4dgeccnn";
+auto const SECRET_KEY = "C132D73EDFA4F73C23C40EF57D0F8086";
 
 std::atomic<bool> running(true);
 std::shared_ptr<OKXPublic> okx_public;
@@ -83,6 +85,12 @@ int main()
         BOOST_LOG_TRIVIAL(info) << "Sent request to cancel order (id" << order.at("ordId") << ")";
     }
 
+    // Получение баланса
+    // https://www.okx.com/docs-v5/en/#rest-api-account-get-balance
+    BOOST_LOG_TRIVIAL(info) << "Sending request to get balance...";
+    auto balance = json::parse(okx_rest->get_balance()).as_object();
+    BOOST_LOG_TRIVIAL(debug) << "Received balance: " << balance;
+
     // Опрос вебсокетов и каналов Aeron
     signal(SIGINT, sigint_handler);
     while (running)
@@ -141,9 +149,14 @@ void private_ws_handler(const std::string& message)
             });
         }
 
-        balance_channel->offer(json::serialize(json::value{
-            { "B", balances }
-        }));
+        if (!balances.empty())
+        {
+            auto push = json::serialize(json::value{
+                { "B", balances }
+            });
+            balance_channel->offer(push);
+            BOOST_LOG_TRIVIAL(info) << "Sent balance to core: " << push;
+        }
     }
     else if (object.if_contains("event") && object.at("event") == "error")
     {
@@ -163,23 +176,26 @@ void aeron_handler(const std::string& message)
     BOOST_LOG_TRIVIAL(debug) << "Received message in aeron handler: " << message;
     auto object = json::parse(message).as_object();
 
-    if (object.at("a") == "+")
+    if (object.at("a") == "+" && object.at("S") == "BTCUSDT")
     {
+        auto id = std::to_string(time(nullptr));
         okx_private->order(
-            std::to_string(time(nullptr)),
+            id,
             object.at("s") == "BUY" ? "buy" : "sell",
-            json::serialize(object.at("S")),
-            json::serialize(object.at("q")),
-            json::serialize(object.at("p"))
+            "BTC-USDT",
+            std::string(object.at("q").as_string()),
+            std::string(object.at("p").as_string())
         );
-        BOOST_LOG_TRIVIAL(info) << "Sent request to create order (id" << std::to_string(time(nullptr)) << ")";
+        BOOST_LOG_TRIVIAL(info) << "Sent request to create order (id" << id << ")";
     }
     else
     {
+        std::string side = boost::algorithm::to_lower_copy(std::string(object.at("s").as_string()));
+
         auto order_list = json::parse(okx_rest->get_order_list()).as_object();
         for (const auto& order: order_list.at("data").as_array())
         {
-            if (object.at("S") == order.at("instId") && object.at("S") == order.at("side"))
+            if (object.at("S") == "BTCUSDT" && "BTC-USDT" == order.at("instId") && side.c_str() == order.at("side"))
             {
                 okx_private->cancel_order(
                     std::to_string(time(nullptr)),

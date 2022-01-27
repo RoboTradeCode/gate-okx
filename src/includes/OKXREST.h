@@ -15,6 +15,8 @@ public:
     explicit OKXREST(boost::asio::io_context& ioc, std::string api_key, std::string passphrase, std::string secret_key);
 
     std::string get_order_list();
+
+    std::string get_balance();
 };
 
 

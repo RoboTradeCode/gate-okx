@@ -2,7 +2,7 @@
 
 OKXPublic::OKXPublic(net::io_context& ioc, const std::function<void(std::string)>& event_handler)
 {
-    ws = std::make_shared<WSSession>("wspap.okex.com", "8443", "/ws/v5/public?brokerId=9999", ioc, event_handler);
+    ws = std::make_shared<WSSession>("ws.okx.com", "8443", "/ws/v5/public", ioc, event_handler);
     ws->async_read();
 }
 

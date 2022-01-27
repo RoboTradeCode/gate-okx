@@ -69,7 +69,7 @@ std::int64_t Publisher::offer(const std::string& message)
     // Отрицательные значения означают, что произошла ошибка
     //
     // https://github.com/real-logic/aeron/wiki/Cpp-Programming-Guide#handling-back-pressure
-    src_buffer.putStringWithoutLength(0, message);
-    const std::int64_t result = publication->offer(src_buffer, 0, message.length());
+    auto length = src_buffer.putString(0, message);
+    const std::int64_t result = publication->offer(src_buffer, 0, length);
     return result;
 }

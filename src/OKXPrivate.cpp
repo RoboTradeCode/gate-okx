@@ -6,7 +6,7 @@ OKXPrivate::OKXPrivate(net::io_context& ioc, const std::function<void(std::strin
       passphrase(std::move(passphrase)),
       secret_key(std::move(secret_key))
 {
-    ws = std::make_shared<WSSession>("wspap.okex.com", "8443", "/ws/v5/private?brokerId=9999", ioc, event_handler);
+    ws = std::make_shared<WSSession>("ws.okx.com", "8443", "/ws/v5/private", ioc, event_handler);
     ws->async_read();
 }
 

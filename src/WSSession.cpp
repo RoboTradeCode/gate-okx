@@ -39,14 +39,6 @@ WSSession::WSSession(std::string host, const std::string& port, const std::strin
         true
     });
 
-    // TODO: Remove on production
-    ws->set_option(websocket::stream_base::decorator(
-        [](websocket::request_type& req)
-        {
-            req.set("x-simulated-trading", "1");
-        }
-    ));
-
     ws->handshake(host, target);
 }
 

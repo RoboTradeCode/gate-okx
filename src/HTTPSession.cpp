@@ -22,13 +22,10 @@ std::string HTTPSession::get(const std::string& target, const std::string& api_k
 {
     auto microsec_time = to_iso_extended_string(boost::posix_time::microsec_clock::universal_time());
     auto timestamp = microsec_time.substr(0, microsec_time.size() - 3) + "Z";
-    auto sign = base64_hmac_sha256(timestamp + "GET" + "/api/v5/trade/orders-pending", secret_key);
+    auto sign = base64_hmac_sha256(timestamp + "GET" + target, secret_key);
 
     http::request<http::string_body> req{ http::verb::get, target, 11 };
     req.set(http::field::host, host);
-
-    // TODO: Remove on production
-    req.set("x-simulated-trading", "1");
 
     req.set("OK-ACCESS-KEY", api_key);
     req.set("OK-ACCESS-SIGN", sign);
