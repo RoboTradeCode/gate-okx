@@ -104,7 +104,6 @@ int main()
 
 void public_ws_handler(const std::string& message)
 {
-    BOOST_LOG_TRIVIAL(debug) << "Received message in public handler: " << message;
     auto object = json::parse(message).as_object();
 
     if (!object.if_contains("event"))
