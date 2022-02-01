@@ -7,23 +7,44 @@ find_package(Boost 1.78.0 REQUIRED COMPONENTS log)
 find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)
 
-include_directories(/home/ubuntu/aeron/aeron-client/src/main/cpp)
+# Aeron client
+set(AERON_VERSION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/libs/aeron/version.txt")
+file(STRINGS ${AERON_VERSION_FILE} AERON_VERSION_TXT LIMIT_COUNT 1 REGEX "^[0-9]+(\\.[0-9]+)+")
+add_definitions(-DAERON_VERSION_TXT="${AERON_VERSION_TXT}")
+set(AERON_CLIENT_SOURCE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/libs/aeron/aeron-client/src/main/cpp")
+add_subdirectory(${AERON_CLIENT_SOURCE_PATH})
 
-add_executable(
-        main main.cpp
-        src/Publisher.cpp   src/includes/Publisher.h
-        src/Subscriber.cpp  src/includes/Subscriber.h
-        src/WSSession.cpp   src/includes/WSSession.h
-        src/HTTPSession.cpp src/includes/HTTPSession.h
-        src/OKXPublic.cpp   src/includes/OKXPublic.h
-        src/OKXPrivate.cpp  src/includes/OKXPrivate.h
-        src/OKXREST.cpp     src/includes/OKXREST.h
-        src/utils.cpp       src/includes/utils.h
-)
-target_link_libraries(
-        main
-        Threads::Threads
-        OpenSSL::SSL
-        Boost::log
-        libaeron_client.a
+# toml++
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/tomlplusplus/include)
+
+SET(SOURCE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Publisher.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Subscriber.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/WSSession.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/HTTPSession.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/OKXPublic.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/OKXPrivate.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/OKXREST.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/log.cpp)
+
+SET(HEADERS
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Publisher.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Subscriber.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/WSSession.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/HTTPSession.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/OKXPublic.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/OKXPrivate.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/OKXREST.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/log.h)
+
+add_executable(okx_gateway ${SOURCE} ${HEADERS})
+
+target_link_libraries(okx_gateway
+    Threads::Threads
+    OpenSSL::SSL
+    Boost::log
+    aeron_client
 )

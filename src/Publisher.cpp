@@ -1,4 +1,4 @@
-#include "includes/Publisher.h"
+#include "Publisher.h"
 
 /**
  * @param channel Канал Aeron. В общем случае для указания канала используется URI
