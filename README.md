@@ -1,63 +1,28 @@
 # okex
 
-## Установка зависимостей
+Торговый шлюз.
 
-### Boost
+[//]: # (TODO: Добавить описание)
 
-Самый надежный способ получить копию [Boost](https://www.boost.org/) — загрузить дистрибутив с официального сайта. Для
-этого перейдите в раздел [«Download»](https://www.boost.org/users/download/) и скопируйте ссылку на скачивание для
-платформы `unix`.
+## Установка и сборка
 
-На момент написания этого README последней версией boost была 1.78.0. Ссылка на её скачивание выглядит так
-— `https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.bz2`.
+Первое, что вам необходимо сделать — собрать [Boost](https://ru.wikipedia.org/wiki/Boost) 1.78.0, включая компонент
+Boost.Log. Вы можете найти подробные инструкции на официальном сайте в
+разделе [Getting Started on Unix Variants](https://www.boost.org/doc/libs/1_78_0/more/getting_started/unix-variants.html).
 
-Выберите каталог, в который хотите установить Boost, а затем выполните в нём следующую команду, чтобы скачать файл с
-помощью [Wget](https://ru.wikipedia.org/wiki/Wget):
+Затем можете клонировать код репозитория:
 
-```bash
-wget https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.bz2
+```shell
+git clone --recurse-submodules https://gitlab.com/exchanges2/okx.git
 ```
 
-После загрузки разархивируйте Boost:
+> Обратите внимание на параметр `--recurse-submodules`. Он нужен, чтобы рекурсивно установить все зависимости
+> репозитория, описанные в файле [.gitmodules](.gitmodules)
 
-```bash
-tar --bzip2 -xf boost_1_78_0.tar.bz2
-```
+Сборка осуществляется с использованием утилиты [CMake](https://ru.wikipedia.org/wiki/CMake). Для её упрощения вы можете
+воспользоваться скриптом [build.sh](build.sh). После его исполнения собранный код будет находиться в директории
+build/Debug:
 
-#### Boost.Certify
-
-Нам также потребуется получить библиотеку [Certify](https://github.com/djarek/certify). Она нужна нам для правильной
-проверки подлинности IP-адреса сервера. Её рекомендуют сами разработчики `beast` в комментарие к
-файлу [root_certificates.hpp](https://www.boost.org/doc/libs/master/libs/beast/example/common/root_certificates.hpp).
-
-Перейдите в подкаталог, содержащий библиотеки Boost:
-
-```bash
-cd boost_1_78_0/libs/
-```
-
-Загрузите исходный код:
-
-```bash
-git clone https://github.com/djarek/certify.git
-```
-
-А затем перейдите обратно в корневую директорию Boost:
-
-```bash
-cd ..
-```
-
-#### Сборка
-
-Выполните следующую команду для инициализации установщика:
-
-```bash
-./bootstrap.sh
-```
-
-Затем соберите код и скопируйте библиотеки в систему с помощью:
-
-```bash
-sudo ./b2 install
+```shell
+./build.sh
 ```

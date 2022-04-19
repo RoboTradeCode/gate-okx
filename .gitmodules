@@ -1,0 +1,12 @@
+[submodule "libs/aeron_cpp"]
+	path = libs/aeron_cpp
+	url = https://gitlab.com/transport_layer/aeron/aeron_cpp.git
+[submodule "libs/sentry-native"]
+    path = libs/sentry-native
+    url = https://github.com/getsentry/sentry-native.git
+[submodule "libs/simdjson"]
+	path = libs/simdjson
+	url = https://github.com/simdjson/simdjson.git
+[submodule "libs/tomlplusplus"]
+	path = libs/tomlplusplus
+	url = https://github.com/marzer/tomlplusplus.git

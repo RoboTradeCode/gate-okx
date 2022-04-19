@@ -6,8 +6,8 @@
 #include "OKXPublic.h"
 #include "OKXPrivate.h"
 #include "OKXREST.h"
-#include "Publisher.h"
-#include "Subscriber.h"
+#include <Publisher.h>
+#include <Subscriber.h>
 
 namespace json = boost::json;
 
@@ -15,7 +15,7 @@ void public_ws_handler(const std::string&);
 
 void private_ws_handler(const std::string&);
 
-void aeron_handler(const std::string&);
+void aeron_handler(std::string_view);
 
 void sigint_handler(int);
 
@@ -35,10 +35,10 @@ std::shared_ptr<Subscriber> core_channel;
 int main()
 {
     // Установка соединения с каналами Aeron
-    orderbook_channel = std::make_shared<Publisher>("aeron:ipc", 1100);
-    balance_channel = std::make_shared<Publisher>("aeron:ipc", 1101);
-    logs_channel = std::make_shared<Publisher>("aeron:ipc", 1102);
-    core_channel = std::make_shared<Subscriber>(&aeron_handler, "aeron:ipc", 1103);
+    orderbook_channel = std::make_shared<Publisher>("aeron:udp?control=172.31.5.122:40456|control-mode=dynamic", 1001);
+    balance_channel = std::make_shared<Publisher>("aeron:udp?control=172.31.5.122:40456|control-mode=dynamic", 1002);
+    logs_channel = std::make_shared<Publisher>("aeron:ipc", 101);
+    core_channel = std::make_shared<Subscriber>(aeron_handler, "aeron:udp?endpoint=172.31.5.122:40457|control=172.31.5.122:40456", 1003);
     BOOST_LOG_TRIVIAL(trace) << "Aeron connections established";
 
     // Установка соединений с OKX
@@ -111,6 +111,7 @@ void public_ws_handler(const std::string& message)
     {
         orderbook_channel->offer(json::serialize(json::value{
             { "u", object.at("data").at(0).at("ts") },
+            { "exchange", "OKX" },
             { "s", object.at("arg").at("instId") },
             { "b", object.at("data").at(0).at("bidPx") },
             { "B", object.at("data").at(0).at("bidSz") },
@@ -171,12 +172,12 @@ void private_ws_handler(const std::string& message)
     }
 }
 
-void aeron_handler(const std::string& message)
+void aeron_handler(std::string_view message)
 {
     BOOST_LOG_TRIVIAL(debug) << "Received message in aeron handler: " << message;
-    auto object = json::parse(message).as_object();
+    auto object = json::parse(std::string(message)).as_object();
 
-    if (object.at("a") == "+" && object.at("S") == "BTCUSDT")
+    if (object.at("a") == "+" && object.at("S") == "BTC-USDT")
     {
         auto id = std::to_string(time(nullptr));
         okx_private->order(
@@ -195,7 +196,7 @@ void aeron_handler(const std::string& message)
         auto order_list = json::parse(okx_rest->get_order_list()).as_object();
         for (const auto& order: order_list.at("data").as_array())
         {
-            if (object.at("S") == "BTCUSDT" && "BTC-USDT" == order.at("instId") && side.c_str() == order.at("side"))
+            if (object.at("S") == "BTC-USDT" && "BTC-USDT" == order.at("instId") && side.c_str() == order.at("side"))
             {
                 okx_private->cancel_order(
                     std::to_string(time(nullptr)),
